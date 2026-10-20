@@ -1,32 +1,49 @@
-//! A small anti-aliased rasterizer for the tray's icons and menu marks: shapes in the 16-unit box
-//! of the icons' SVG paths, sampled 8 × 8 per pixel, painted over or erased. Plain std and no crate
-//! paths: `build/` includes this file to embed the same pixels as icon resources.
+//! A small anti-aliased rasterizer for the app and tray icons and the menu marks: shapes in a box
+//! of units (16 for the menu marks, the icon's own pixels for art snapped per size), sampled
+//! 16 × 16 per pixel and painted over. Plain std and no crate paths: `build/` includes this file to
+//! embed the same pixels as icon resources.
 
-/// A point in the 16-unit box.
+/// A point in the canvas's box.
 pub type Point = (f64, f64);
 
 /// What a shape covers.
 pub enum Shape {
     /// The inside of a closed polygon.
     Fill(Vec<Point>),
-    /// Polylines of a width, with round caps and joins (SVG `stroke-linecap="round"`).
-    Stroke(Vec<Vec<Point>>, f64),
+    /// A straight stroke between two points of a width, with butt caps (SVG's default).
+    Line(Point, Point, f64),
+    /// A stroked arc with butt ends: centre, radius, width and the angles it runs between, in
+    /// degrees clockwise from the right, as y grows downwards.
+    Arc(Point, f64, f64, (f64, f64)),
     Disc(Point, f64),
     /// A circle's outline: centre, radius, width.
     Ring(Point, f64, f64),
+    /// A rectangle from its top-left to its bottom-right corner, rounded by a radius (SVG `rx`).
+    Rounded(Point, Point, f64),
+    /// Shapes painted as one layer: where they overlap, the opacity does not add up
+    /// (SVG `<g opacity>`).
+    Union(Vec<Shape>),
 }
 
 impl Shape {
     fn covers(&self, (x, y): Point) -> bool {
         match self {
             Shape::Fill(points) => Self::inside(points, (x, y)),
-            Shape::Stroke(lines, width) => lines.iter().any(|line| {
-                line.windows(2)
-                    .any(|pair| Self::distance((x, y), pair[0], pair[1]) <= width / 2.0)
-                    || (line.len() == 1 && Self::distance((x, y), line[0], line[0]) <= width / 2.0)
-            }),
+            Shape::Line(a, b, width) => {
+                Self::beside((x, y), *a, *b).is_some_and(|d| d <= width / 2.0)
+            }
+            Shape::Arc((cx, cy), r, width, (from, to)) => {
+                let angle = (y - cy).atan2(x - cx).to_degrees().rem_euclid(360.0);
+                ((x - cx).hypot(y - cy) - r).abs() <= width / 2.0 && (*from..=*to).contains(&angle)
+            }
             Shape::Disc((cx, cy), r) => (x - cx).hypot(y - cy) <= *r,
             Shape::Ring((cx, cy), r, width) => ((x - cx).hypot(y - cy) - r).abs() <= width / 2.0,
+            Shape::Rounded((x0, y0), (x1, y1), r) => {
+                let dx = (x0 + r - x).max(x - x1 + r).max(0.0);
+                let dy = (y0 + r - y).max(y - y1 + r).max(0.0);
+                dx.hypot(dy) <= *r
+            }
+            Shape::Union(shapes) => shapes.iter().any(|shape| shape.covers((x, y))),
         }
     }
 
@@ -45,9 +62,19 @@ impl Shape {
         };
         match self {
             Shape::Fill(points) => grow(&mut points.iter().copied(), 0.0),
-            Shape::Stroke(lines, width) => grow(&mut lines.iter().flatten().copied(), width / 2.0),
+            Shape::Line(a, b, width) => grow(&mut [*a, *b].into_iter(), width / 2.0),
+            Shape::Arc(centre, r, width, _) | Shape::Ring(centre, r, width) => {
+                grow(&mut std::iter::once(*centre), r + width / 2.0)
+            }
             Shape::Disc(centre, r) => grow(&mut std::iter::once(*centre), *r),
-            Shape::Ring(centre, r, width) => grow(&mut std::iter::once(*centre), r + width / 2.0),
+            Shape::Rounded(a, b, _) => grow(&mut [*a, *b].into_iter(), 0.0),
+            Shape::Union(shapes) => grow(
+                &mut shapes.iter().flat_map(|shape| {
+                    let (a, b) = shape.bounds();
+                    [a, b]
+                }),
+                0.0,
+            ),
         }
     }
 
@@ -63,68 +90,56 @@ impl Shape {
         inside
     }
 
-    fn distance((x, y): Point, (ax, ay): Point, (bx, by): Point) -> f64 {
+    /// How far `(x, y)` is from the line through `a` and `b`, when it lies between their ends.
+    fn beside((x, y): Point, (ax, ay): Point, (bx, by): Point) -> Option<f64> {
         let (dx, dy) = (bx - ax, by - ay);
-        let length = dx * dx + dy * dy;
-        let t = if length == 0.0 {
-            0.0
-        } else {
-            (((x - ax) * dx + (y - ay) * dy) / length).clamp(0.0, 1.0)
-        };
-        (x - ax - t * dx).hypot(y - ay - t * dy)
+        let t = ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy);
+        (0.0..=1.0)
+            .contains(&t)
+            .then(|| (x - ax - t * dx).hypot(y - ay - t * dy))
     }
 }
 
-/// An outline of lines and cubic curves, flattened into points.
-pub struct Path(Vec<Point>);
+/// A linear gradient from one colour (`0xRRGGBB`) at a point to another at a second point
+/// (SVG `linearGradient`).
+pub struct Gradient {
+    pub from: (Point, u32),
+    pub to: (Point, u32),
+}
 
-impl Path {
-    const CURVE_STEPS: usize = 16;
-
-    pub fn start(at: Point) -> Self {
-        Self(vec![at])
-    }
-
-    pub fn line(mut self, to: Point) -> Self {
-        self.0.push(to);
-        self
-    }
-
-    pub fn cubic(mut self, c1: Point, c2: Point, to: Point) -> Self {
-        let from = *self.0.last().unwrap_or(&to);
-        for step in 1..=Self::CURVE_STEPS {
-            let t = step as f64 / Self::CURVE_STEPS as f64;
-            let u = 1.0 - t;
-            let at = |a: f64, b: f64, c: f64, d: f64| {
-                u * u * u * a + 3.0 * u * u * t * b + 3.0 * u * t * t * c + t * t * t * d
-            };
-            self.0
-                .push((at(from.0, c1.0, c2.0, to.0), at(from.1, c1.1, c2.1, to.1)));
-        }
-        self
-    }
-
-    /// The outline closed back to its start.
-    pub fn closed(mut self) -> Vec<Point> {
-        if let Some(&first) = self.0.first() {
-            self.0.push(first);
-        }
-        self.0
+impl Gradient {
+    /// The colour at `(x, y)`, mixed by where it falls between the two points.
+    fn colour(&self, (x, y): Point) -> [f64; 4] {
+        let (((ax, ay), first), ((bx, by), last)) = (self.from, self.to);
+        let (dx, dy) = (bx - ax, by - ay);
+        let t = (((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
+        let (first, last) = (Canvas::colour(first), Canvas::colour(last));
+        [0, 1, 2, 3].map(|i| first[i] + (last[i] - first[i]) * t)
     }
 }
 
 /// Pixels as premultiplied red, green, blue and alpha from 0 to 1, rows top-down.
 pub struct Canvas {
     size: u32,
+    /// How wide the box of the shapes is.
+    units: f64,
     pixels: Vec<[f64; 4]>,
 }
 
 impl Canvas {
-    const SAMPLES: u32 = 8;
+    const SAMPLES: u32 = 16;
 
+    /// A canvas of `size` pixels for shapes in the 16-unit box.
     pub fn new(size: u32) -> Self {
+        Self::with_box(size, 16.0)
+    }
+
+    /// A canvas of `size` pixels for shapes in a box `units` wide; art snapped to whole pixels
+    /// passes `size`.
+    pub fn with_box(size: u32, units: f64) -> Self {
         Self {
             size,
+            units,
             pixels: vec![[0.0; 4]; (size * size) as usize],
         }
     }
@@ -135,23 +150,13 @@ impl Canvas {
 
     /// Paints `shape` over the canvas in `rgb` (`0xRRGGBB`) at `opacity`.
     pub fn paint(&mut self, shape: &Shape, rgb: u32, opacity: f64) {
-        let channel = |shift: u32| f64::from((rgb >> shift) & 0xFF) / 255.0;
-        let colour = [channel(16), channel(8), channel(0), 1.0];
-        self.each(shape, |pixel, cover| {
-            let alpha = cover * opacity;
-            for (value, source) in pixel.iter_mut().zip(colour) {
-                *value = source * alpha + *value * (1.0 - alpha);
-            }
-        });
+        let colour = Self::colour(rgb);
+        self.cover(shape, opacity, |_| colour);
     }
 
-    /// Clears what `shape` covers, so the taskbar shows through (a cut-out in the art).
-    pub fn erase(&mut self, shape: &Shape) {
-        self.each(shape, |pixel, cover| {
-            for value in pixel.iter_mut() {
-                *value *= 1.0 - cover;
-            }
-        });
+    /// Paints `shape` over the canvas in `gradient`, opaque.
+    pub fn paint_gradient(&mut self, shape: &Shape, gradient: &Gradient) {
+        self.cover(shape, 1.0, |at| gradient.colour(at));
     }
 
     /// `0xAARRGGBB` with straight alpha: an icon resource's colours.
@@ -173,27 +178,41 @@ impl Canvas {
             .collect()
     }
 
+    fn colour(rgb: u32) -> [f64; 4] {
+        let channel = |shift: u32| f64::from((rgb >> shift) & 0xFF) / 255.0;
+        [channel(16), channel(8), channel(0), 1.0]
+    }
+
     fn pack(a: f64, r: f64, g: f64, b: f64) -> u32 {
         let byte = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u32;
         (byte(a) << 24) | (byte(r) << 16) | (byte(g) << 8) | byte(b)
     }
 
-    /// Calls `apply` with every pixel the shape touches and the share of it covered.
-    fn each(&mut self, shape: &Shape, mut apply: impl FnMut(&mut [f64; 4], f64)) {
-        let unit = self.size as f64 / 16.0;
+    /// Blends `colour` at each pixel's centre over what `shape` covers of it.
+    fn cover(&mut self, shape: &Shape, opacity: f64, colour: impl Fn(Point) -> [f64; 4]) {
+        self.each(shape, |pixel, cover, centre| {
+            let alpha = cover * opacity;
+            for (value, source) in pixel.iter_mut().zip(colour(centre)) {
+                *value = source * alpha + *value * (1.0 - alpha);
+            }
+        });
+    }
+
+    /// Calls `apply` with every pixel the shape touches, the share of it covered and its centre.
+    fn each(&mut self, shape: &Shape, mut apply: impl FnMut(&mut [f64; 4], f64, Point)) {
+        let unit = f64::from(self.size) / self.units;
         let ((x0, y0), (x1, y1)) = shape.bounds();
         let first = |v: f64| ((v * unit).floor().max(0.0) as u32).min(self.size);
         let last = |v: f64| ((v * unit).ceil().max(0.0) as u32).min(self.size);
-        let total = f64::from(Self::SAMPLES * Self::SAMPLES);
+        let samples = f64::from(Self::SAMPLES);
+        let at = |pixel: u32, sample: f64| (f64::from(pixel) + sample / samples) / unit;
         for py in first(y0)..last(y1) {
             for px in first(x0)..last(x1) {
                 let mut hits = 0u32;
                 for sy in 0..Self::SAMPLES {
                     for sx in 0..Self::SAMPLES {
-                        let x = (f64::from(px) + (f64::from(sx) + 0.5) / f64::from(Self::SAMPLES))
-                            / unit;
-                        let y = (f64::from(py) + (f64::from(sy) + 0.5) / f64::from(Self::SAMPLES))
-                            / unit;
+                        let x = at(px, f64::from(sx) + 0.5);
+                        let y = at(py, f64::from(sy) + 0.5);
                         if shape.covers((x, y)) {
                             hits += 1;
                         }
@@ -201,7 +220,12 @@ impl Canvas {
                 }
                 if hits > 0 {
                     let index = (py * self.size + px) as usize;
-                    apply(&mut self.pixels[index], f64::from(hits) / total);
+                    let centre = (at(px, samples / 2.0), at(py, samples / 2.0));
+                    apply(
+                        &mut self.pixels[index],
+                        f64::from(hits) / (samples * samples),
+                        centre,
+                    );
                 }
             }
         }
@@ -217,20 +241,34 @@ mod tests {
     }
 
     #[test]
-    fn shapes_cover_their_pixels_and_erasing_clears_them() {
+    fn lines_and_arcs_end_square() {
+        let mut canvas = Canvas::new(16);
+        canvas.paint(&Shape::Line((8.0, 4.0), (8.0, 12.0), 2.0), 0x1B1B1B, 1.0);
+        assert_eq!(alpha(&canvas, 7, 4), 255);
+        assert_eq!(alpha(&canvas, 7, 3), 0, "no round cap");
+        assert_eq!(alpha(&canvas, 8, 12), 0);
+        assert_eq!(alpha(&canvas, 6, 8), 0);
+        assert_eq!(canvas.argb()[8 * 16 + 8], 0xFF1B_1B1B);
         let mut canvas = Canvas::new(16);
         canvas.paint(
-            &Shape::Fill(vec![(2.0, 2.0), (14.0, 2.0), (14.0, 14.0), (2.0, 14.0)]),
+            &Shape::Arc((8.0, 8.0), 5.0, 2.0, (180.0, 270.0)),
             0x1B1B1B,
             1.0,
         );
-        assert_eq!(alpha(&canvas, 8, 8), 255);
-        assert_eq!(alpha(&canvas, 0, 0), 0);
-        canvas.erase(&Shape::Stroke(vec![vec![(8.0, 4.0), (8.0, 12.0)]], 2.0));
-        assert_eq!(alpha(&canvas, 7, 8), 0);
-        assert_eq!(alpha(&canvas, 8, 8), 0);
-        assert_eq!(alpha(&canvas, 10, 8), 255);
-        assert_eq!(canvas.argb()[8 * 16 + 10], 0xFF1B_1B1B);
+        assert_eq!(alpha(&canvas, 3, 7), 255, "the left end");
+        assert_eq!(alpha(&canvas, 3, 8), 0, "cut square below it");
+        assert_eq!(alpha(&canvas, 7, 3), 255, "the top end");
+        assert_eq!(alpha(&canvas, 8, 3), 0, "cut square right of it");
+    }
+
+    #[test]
+    fn a_union_is_one_layer() {
+        let square =
+            |x: f64| Shape::Fill(vec![(x, 2.0), (x + 8.0, 2.0), (x + 8.0, 10.0), (x, 10.0)]);
+        let mut canvas = Canvas::new(16);
+        canvas.paint(&Shape::Union(vec![square(2.0), square(6.0)]), 0xFFFFFF, 0.5);
+        assert_eq!(alpha(&canvas, 3, 4), 128);
+        assert_eq!(alpha(&canvas, 8, 4), 128, "the overlap");
     }
 
     #[test]
@@ -248,12 +286,17 @@ mod tests {
     }
 
     #[test]
-    fn curves_end_where_they_are_sent() {
-        let points = Path::start((0.0, 0.0))
-            .cubic((0.0, 4.0), (4.0, 8.0), (8.0, 8.0))
-            .line((8.0, 0.0))
-            .closed();
-        assert_eq!(points[16], (8.0, 8.0));
-        assert_eq!(points.last(), Some(&(0.0, 0.0)));
+    fn rounded_corners_and_gradients() {
+        let mut canvas = Canvas::with_box(16, 16.0);
+        let gradient = Gradient {
+            from: ((0.0, 0.0), 0x000000),
+            to: ((16.0, 16.0), 0xFFFFFF),
+        };
+        canvas.paint_gradient(&Shape::Rounded((0.0, 0.0), (16.0, 16.0), 4.0), &gradient);
+        let pixels = canvas.argb();
+        assert_eq!(pixels[0] >> 24, 0, "the corner is round");
+        assert_eq!(pixels[8 * 16] >> 24, 255);
+        assert_eq!(pixels[8 * 16 + 7], 0xFF80_8080, "the middle is half way");
+        assert!(pixels[15 * 16 + 8] & 0xFF > pixels[8 * 16] & 0xFF);
     }
 }

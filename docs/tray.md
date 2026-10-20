@@ -5,10 +5,10 @@ pipe client. The view models are `presentation::tray`; `platform::window::tray` 
 
 ## Icon
 
-The icon is the `TrayState` of the last `Status` ([alerts](alerts.md)), or `service` while no pipe answers. Each
-state has an icon per taskbar theme in 16, 20, 24 and 32 px, drawn by `TrayArt` (a shield with the split mark) and embedded by
-`build/` as icon groups 101–105 (light taskbar) and 111–115 (dark). The taskbar follows the Windows mode
-(`SystemUsesLightTheme`), not the app theme.
+The icon is the `TrayState` of the last `Status` ([alerts](alerts.md)); while no pipe answers it is the error's.
+Only its colour tells the state. `TrayArt` draws it per taskbar theme ([icons](building.md#icons)), embedded as icon
+groups 101–104 (light taskbar) and 111–114 (dark). The taskbar follows the Windows mode (`SystemUsesLightTheme`),
+not the app theme.
 
 The tooltip is "SplitWire · N of M connected", a line per failed, blocked or connecting profile, and
 "N alerts", within the 127 characters of `szTip`; profiles that do not fit become "+N more".
@@ -52,5 +52,5 @@ SplitWire.exe run --dry-run --for 30m --dir C:\Temp\sw --listen 127.0.0.1:15353
 SplitWire.Window.exe --pipe SplitWire.DryRun  # in a second console, against the dry run
 ```
 
-`--verify-pages` loads all 40 icons and builds every scenario's menu without showing them: one plain item per
+`--verify-pages` loads all 32 icons and builds every scenario's menu without showing them: one plain item per
 profile, as many top-level items as the view has.

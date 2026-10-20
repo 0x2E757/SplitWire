@@ -6,6 +6,8 @@
 #[allow(dead_code)]
 mod raster;
 mod resource_file;
+#[path = "../src/presentation/tray/split_arrow.rs"]
+mod split_arrow;
 #[path = "../src/presentation/tray/tray_art.rs"]
 #[allow(dead_code)]
 mod tray_art;
@@ -33,6 +35,7 @@ fn main() {
     for source in [
         "build/resource_file.rs",
         "src/presentation/tray/raster.rs",
+        "src/presentation/tray/split_arrow.rs",
         "src/presentation/tray/tray_art.rs",
     ] {
         println!("cargo:rerun-if-changed={}", root.join(source).display());

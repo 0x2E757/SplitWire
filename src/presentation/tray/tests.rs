@@ -221,6 +221,7 @@ fn without_the_service_only_open_and_exit() {
         entry(&view.menu[0]).lead,
         TrayLead::State(TrayState::Service)
     );
+    assert_eq!(TrayView::art_key(view.state), "error", "the error's icon");
 }
 
 #[test]

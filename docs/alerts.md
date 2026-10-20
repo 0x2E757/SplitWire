@@ -40,4 +40,4 @@ The conditions of a connected profile (`recover_failed`, `upstream_unreachable`,
 | `connected` | a profile is connected |
 | `off` | otherwise |
 
-`service` (no pipe) is the client's own state.
+`service` (no pipe) is the client's own state; its tray icon is the error's.

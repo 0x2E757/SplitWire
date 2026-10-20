@@ -5,6 +5,7 @@
 mod menu;
 mod menu_art;
 pub mod raster;
+mod split_arrow;
 mod tooltip;
 pub mod tray_art;
 
@@ -121,17 +122,18 @@ impl TrayView {
         }
     }
 
-    /// The `TrayArt` state of `state`.
+    /// The `TrayArt` state of `state`: without the service the icon is the error's.
     pub fn art_key(state: TrayState) -> &'static str {
         match state {
             TrayState::Connected => "connected",
             TrayState::Warning => "warning",
-            TrayState::Error => "error",
+            TrayState::Error | TrayState::Service => "error",
             TrayState::Off => "off",
-            TrayState::Service => "service",
         }
     }
 }
 
+#[cfg(test)]
+mod approved;
 #[cfg(test)]
 mod tests;
