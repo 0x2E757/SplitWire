@@ -705,10 +705,12 @@ mod tests {
             rig.log
                 .contains("moved from 198.51.100.7:51820 to 203.0.113.9:51820")
         );
-        // At most one lookup a minute.
+        // At most one lookup a minute, while it keeps sending.
+        rig.set_health(0, health(Some(1_005), 1_000));
         rig.advance(30);
         rig.tunnel.refresh(&spec()).unwrap();
         assert_eq!(rig.queries(), 1);
+        rig.set_health(0, health(Some(1_005), 1_100));
         rig.advance(31);
         rig.tunnel.refresh(&spec()).unwrap();
         assert_eq!(rig.queries(), 2);

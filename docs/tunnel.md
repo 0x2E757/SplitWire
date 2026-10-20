@@ -40,7 +40,8 @@ A failing step drops the new adapter, which removes it. `down` sets it down and 
 | `Handshaking` or `Stale` | re-resolve the endpoint, at most once a minute |
 
 `HandshakePolicy`: `Handshaking` with no handshake 30 s after up; `Stale` when the last one is over 180 s old and
-the tunnel sent since. `EndpointResolver` asks the fallback servers only and records every address in
+the tunnel keeps sending: its sent bytes grew at this read and the one before, so a keepalive after a handshake or a
+handshake under way does not count. `EndpointResolver` asks the fallback servers only and records every address in
 `EndpointAddresses` first. A moved endpoint is set with `UPDATE_ONLY`; one that does not resolve keeps the peer.
 
 ## IP Helper and upstream DNS

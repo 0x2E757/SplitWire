@@ -120,7 +120,7 @@ impl AlertTexts {
             Some(profile),
             "",
             "Stale handshake".into(),
-            "No handshake for 3 min while traffic was sent; the endpoint was re-resolved.".into(),
+            "No handshake for 3 min while traffic is sent; the endpoint was re-resolved.".into(),
             "stale".into(),
         );
         raised.action = Self::open_profile(profile);

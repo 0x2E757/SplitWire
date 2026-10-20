@@ -102,7 +102,7 @@ impl DemoAlerts {
             "",
             Scenario::at(11, 2, 10),
             "Stale handshake",
-            "No handshake for 3 min while traffic was sent; the endpoint was re-resolved.",
+            "No handshake for 3 min while traffic is sent; the endpoint was re-resolved.",
             ("Open profile", Self::profile_target("AcmeCorp")),
         );
         stale.dismissed = true;
