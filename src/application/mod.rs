@@ -1,0 +1,83 @@
+//! The application layer: the engine composed over the boundary traits. The data folder, the
+//! profiles, settings and lists on disk; the tunnel kind over wireguard-nt; the coordinator with
+//! the ten Connect steps and their undo; the DNS proxy; the periodic jobs; the engine and its
+//! foreground host; the pipe's dispatcher and the reports it answers with.
+
+mod active_profiles;
+mod alert_service;
+mod boot_restore;
+mod connect_run;
+mod control;
+mod control_replies;
+mod coordinator;
+mod data_folder;
+mod dns_proxy;
+mod dns_service;
+mod engine;
+mod engine_host;
+mod engine_parts;
+#[cfg(test)]
+mod engine_tests;
+mod file_watcher;
+mod guard_source;
+mod list_service;
+mod lists_reload;
+mod lists_view;
+mod maintenance;
+mod profile_ops;
+mod profile_report;
+mod profile_set;
+mod profile_states;
+mod route_groups;
+mod scheduler;
+mod settings_files;
+mod settings_reload;
+mod settings_view;
+mod status_reporter;
+mod stop_signal;
+mod tcp_server;
+mod teardown;
+mod traffic_sampler;
+mod tunnel_watch;
+mod udp_server;
+mod wire_alerts;
+mod wire_attempts;
+mod wireguard_tunnel;
+
+pub use active_profiles::{ActiveProfile, ActiveProfiles};
+pub use alert_service::AlertService;
+pub use boot_restore::BootRestore;
+pub use connect_run::ConnectRun;
+pub use control::Control;
+pub use coordinator::{Coordinator, CoordinatorError, Reconnected};
+pub use data_folder::{DataFolder, FolderAccess};
+pub use dns_proxy::DnsProxy;
+pub use dns_service::{DnsService, DnsServiceParts};
+pub use engine::{Engine, EngineConfig};
+pub use engine_host::{EngineHost, HostConfig};
+pub use engine_parts::{EngineParts, Inventory};
+pub use file_watcher::FileWatcher;
+pub use guard_source::GuardSource;
+pub use list_service::{ListRefusal, ListService};
+pub use lists_reload::ListsReload;
+pub use lists_view::ListsViewBuilder;
+pub use maintenance::Maintenance;
+pub use profile_ops::ProfileOps;
+pub use profile_report::ProfileReport;
+pub use profile_set::{PreviewInputs, ProfileError, ProfileSet, StoredProfile};
+pub use profile_states::{ProfileRecord, ProfileStates};
+pub use route_groups::RouteGroups;
+pub use scheduler::{Job, Scheduler, SchedulerWaker};
+pub use settings_files::{SaveRefused, SettingsFiles};
+pub use settings_reload::SettingsReload;
+pub use settings_view::SettingsViewBuilder;
+pub use status_reporter::StatusReporter;
+pub use stop_signal::StopSignal;
+pub use tcp_server::TcpServer;
+pub use teardown::Teardown;
+pub use traffic_sampler::TrafficSampler;
+pub use tunnel_watch::TunnelWatch;
+pub use udp_server::UdpServer;
+pub use wire_alerts::WireAlerts;
+pub use wire_attempts::WireAttempts;
+pub use wireguard_tunnel::WireGuardTunnel;

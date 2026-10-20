@@ -1,0 +1,2 @@
+# Vendored files stay byte for byte, so their SHA-256 in vendor/*/README.md holds in every checkout.
+vendor/** -text

@@ -1,0 +1,33 @@
+[package]
+name = "splitwire"
+version = "0.1.0"
+edition = "2024"
+default-run = "splitwire"
+build = "build/main.rs"
+rust-version = "1.95"
+license = "MIT"
+publish = false
+description = "Domain-based split tunnelling over wireguard-nt for Windows, using only std and Windows APIs"
+
+[lib]
+name = "splitwire"
+path = "src/lib.rs"
+
+[[bin]]
+name = "splitwire"
+path = "src/bin/splitwire.rs"
+
+[[bin]]
+name = "splitwire-window"
+path = "src/bin/splitwire-window.rs"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "unwind"
+
+[lints.clippy]
+all = "warn"
+
+[dependencies]

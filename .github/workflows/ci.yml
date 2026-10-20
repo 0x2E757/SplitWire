@@ -1,0 +1,22 @@
+# Formatting, lints, tests and the repository checks on every push to main and every pull request.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup show
+      - run: cargo fmt --check
+      - run: cargo clippy --offline --all-targets -- -D warnings
+      - run: cargo test --offline
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\verify-markdown.ps1
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\verify-vendor.ps1
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\verify-abi.ps1
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\build.ps1 -SkipTests
+      - run: target\package\SplitWire.Window.exe --verify-pages
