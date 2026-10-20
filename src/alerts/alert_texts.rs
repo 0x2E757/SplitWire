@@ -88,13 +88,14 @@ impl AlertTexts {
         raised
     }
 
+    /// `error` names each server with its failure (`Forwarder`); `servers` tell the condition.
     pub fn upstream_unreachable(profile: &str, servers: &str, error: &str) -> AlertRaise {
         let mut raised = Self::base(
             AlertKind::UpstreamUnreachable,
             Some(profile),
             "",
             format!("{profile}'s DNS does not answer"),
-            format!("{servers}: {error}. Listed names of {profile} fail until it answers."),
+            format!("{error}. Listed names of {profile} fail until it answers."),
             servers.into(),
         );
         raised.action = Self::open_profile(profile);
@@ -318,6 +319,21 @@ mod tests {
                 .ends_with("Every profile stays disconnected until it is fixed.")
         );
         assert_eq!(global.action.unwrap().target, "settings#global.mtu");
+    }
+
+    #[test]
+    fn an_unreachable_upstream_names_each_server_once() {
+        let raised = AlertTexts::upstream_unreachable(
+            "Contoso",
+            "10.66.0.53:53, 10.66.0.54:53",
+            "10.66.0.53:53: no answer in time, 10.66.0.54:53: no answer in time",
+        );
+        assert_eq!(
+            raised.message,
+            "10.66.0.53:53: no answer in time, 10.66.0.54:53: no answer in time. Listed names of \
+             Contoso fail until it answers."
+        );
+        assert_eq!(raised.fingerprint, "10.66.0.53:53, 10.66.0.54:53");
     }
 
     #[test]

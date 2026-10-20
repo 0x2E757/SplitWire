@@ -26,7 +26,8 @@ impl ServerSet {
     }
 }
 
-/// Forwards a query to the servers of a set in order; the first reply wins.
+/// Forwards a query to the servers of a set in order; the first reply wins. When none replies,
+/// the error names each server with its failure.
 #[derive(Clone)]
 pub struct Forwarder {
     exchange: Arc<dyn DnsExchange>,
@@ -39,14 +40,21 @@ impl Forwarder {
     }
 
     pub fn forward(&self, query: &[u8]) -> io::Result<Vec<u8>> {
-        let mut last = io::Error::other("no DNS servers configured");
+        let mut kind = io::ErrorKind::Other;
+        let mut failures = Vec::new();
         for server in self.servers.get() {
             match self.exchange.exchange(server, query) {
                 Ok(reply) => return Ok(reply),
-                Err(e) => last = io::Error::new(e.kind(), format!("{server}: {e}")),
+                Err(e) => {
+                    kind = e.kind();
+                    failures.push(format!("{server}: {e}"));
+                }
             }
         }
-        Err(last)
+        if failures.is_empty() {
+            return Err(io::Error::other("no DNS servers configured"));
+        }
+        Err(io::Error::new(kind, failures.join(", ")))
     }
 }
 
@@ -97,11 +105,15 @@ mod tests {
     }
 
     #[test]
-    fn the_last_failure_names_its_server() {
+    fn every_failure_names_its_server_once() {
         let (_, forwarder) = forwarder(&[], &["1.1.1.1:53", "9.9.9.9:53"]);
         let error = forwarder.forward(b"q").unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
-        assert!(error.to_string().starts_with("9.9.9.9:53: "));
+        let timeout = io::Error::from(io::ErrorKind::TimedOut);
+        assert_eq!(
+            error.to_string(),
+            format!("1.1.1.1:53: {timeout}, 9.9.9.9:53: {timeout}")
+        );
     }
 
     #[test]

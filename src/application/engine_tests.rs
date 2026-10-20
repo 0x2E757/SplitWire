@@ -1072,7 +1072,10 @@ fn the_first_answers_after_connect_are_retried_flushed_once_and_raise_no_alert()
         assert_eq!(rig.zone.calls().len(), calls + 1);
     }
     coordinator.watch_tunnels();
-    assert!(alert(&parts, "upstream_unreachable:KeepLab:").is_some());
+    let raised = alert(&parts, "upstream_unreachable:KeepLab:")
+        .unwrap()
+        .raised;
+    assert_eq!(raised.message.matches("10.66.0.53:53").count(), 1);
 
     // The first answer after the failures flushes the cache once more, and clears the alert.
     *rig.zone.down.lock().unwrap() = false;
