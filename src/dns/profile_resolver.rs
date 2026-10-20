@@ -28,8 +28,8 @@ pub struct Resolution {
 }
 
 /// One connected profile's resolver: its own cache partition, its upstream servers asked
-/// through its bound exchange (with patience while the tunnel warms up), and the upstream's
-/// health.
+/// through its bound exchange (with patience while the tunnel is fresh or cold), and the
+/// upstream's health.
 pub struct ProfileResolver {
     servers: Arc<ServerSet>,
     exchange: RwLock<Arc<dyn DnsExchange>>,
@@ -59,7 +59,8 @@ impl ProfileResolver {
         }
     }
 
-    /// The tunnel's handshake, as the driver reports it; the first one starts the warm-up's end.
+    /// The tunnel's handshake, as the driver reports it: the first one starts the warm-up's end,
+    /// the last one tells when the tunnel is cold.
     pub fn handshake(&self, at: SystemTime) {
         self.warmup.lock().unwrap().handshake(at);
     }
@@ -140,8 +141,8 @@ impl ProfileResolver {
     }
 
     /// The upstream's answer, and whether it is the first since the Connect or since failures.
-    /// While warming up, a failed exchange is retried within the budget; only the last failure
-    /// is recorded.
+    /// While the tunnel is fresh or cold, a failed exchange is retried within the budget; only the
+    /// last failure is recorded.
     fn ask_upstream(&self, query: &DnsQuery) -> io::Result<(DnsResponse, bool)> {
         let started = self.clock.now();
         loop {
@@ -387,7 +388,7 @@ pub(crate) mod tests {
                 .is_err()
         );
         assert!(clock.now() <= start + UpstreamWarmup::BUDGET);
-        assert_eq!(zone.calls().len(), 4 + 11);
+        assert_eq!(zone.calls().len(), 4 + 21);
         assert_eq!(resolver.health().consecutive_failures, 1);
         assert!(!resolver.unreachable());
     }
@@ -417,6 +418,51 @@ pub(crate) mod tests {
             .resolve(&query(4, "y.acme.example", TYPE_A), 300)
             .unwrap();
         assert!(!again.recovered);
+    }
+
+    #[test]
+    fn a_cold_tunnel_is_retried_like_a_fresh_one_until_a_new_handshake() {
+        let (zone, clock, resolver) = rig();
+        resolver.handshake(clock.now());
+        resolver
+            .resolve(&query(1, "www.acme.example", TYPE_A), 300)
+            .unwrap();
+        // Idle past WireGuard's reject-after time: the next packet waits for a new handshake.
+        clock.advance(UpstreamWarmup::COLD_AFTER + Duration::from_secs(1));
+        *zone.failing.lock().unwrap() = 3;
+        let calls = zone.calls().len();
+        let answer = resolver
+            .resolve(&query(2, "x.acme.example", TYPE_A), 300)
+            .unwrap();
+        assert_eq!(zone.calls().len(), calls + 4);
+        assert!(!answer.recovered, "no failure was recorded");
+        assert!(!resolver.unreachable());
+
+        // Still cold for the whole budget: SERVFAIL, and the next answer is a recovery.
+        *zone.down.lock().unwrap() = true;
+        let start = clock.now();
+        assert!(
+            resolver
+                .resolve(&query(3, "y.acme.example", TYPE_A), 300)
+                .is_err()
+        );
+        assert!(clock.now() > start + UpstreamWarmup::BUDGET - UpstreamWarmup::PAUSE);
+        *zone.down.lock().unwrap() = false;
+        resolver.handshake(clock.now());
+        let back = resolver
+            .resolve(&query(4, "y.acme.example", TYPE_A), 300)
+            .unwrap();
+        assert!(back.recovered, "the Windows cache forgets the SERVFAIL");
+
+        // A handshake newer than the cold point: a failure is SERVFAIL at once again.
+        *zone.failing.lock().unwrap() = 1;
+        let calls = zone.calls().len();
+        assert!(
+            resolver
+                .resolve(&query(5, "z.acme.example", TYPE_A), 300)
+                .is_err()
+        );
+        assert_eq!(zone.calls().len(), calls + 1, "not retried");
     }
 
     #[test]

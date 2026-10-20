@@ -1,7 +1,7 @@
 # Warm-up
 
-The first seconds after a Connect: the tunnel's first handshake, and patience with its upstream DNS. The steps are
-in [engine](engine.md), the upstream in [routing and DNS](routing-and-dns.md).
+The first seconds after a Connect, or after a long idle: the tunnel's first handshake, and patience with its upstream
+DNS. The steps are in [engine](engine.md), the upstream in [routing and DNS](routing-and-dns.md).
 
 ## The first handshake
 
@@ -24,13 +24,16 @@ Its time counts toward the 10 s. The step's detail ends with how it went:
 ## Upstream patience
 
 `dns::UpstreamWarmup`, one per resolver, lasts until the tunnel's first handshake and 15 s after it (after the
-Connect, when the handshake came during its wait). Step 7, or `TunnelWatch` every 10 s, passes the driver's
-handshake time on.
+Connect, when the handshake came during its wait). It comes back while the last handshake is over 180 s old: the
+tunnel is cold, WireGuard no longer uses its keys, and the next packet waits for a new handshake, whose lost first
+initiation is repeated only after 5 s. A newer handshake ends it. Step 7, or `TunnelWatch` every 10 s, passes the
+driver's handshake time on; a late report only makes the patience last longer.
 
 While it lasts, a failed exchange of a listed name is retried every 0.5 s as long as the next attempt can end
-within 5 s of the query; one server with its 2 s timeout gets two attempts in 4.5 s. Only then does the client get
-SERVFAIL, and only such a spent budget counts as a failure toward `upstream_unreachable` (3 in a row, as always).
-After the warm-up a failure is SERVFAIL at once. A query being retried holds one of the proxy's four UDP workers.
+within 10 s of the query; one server with its 2 s timeout gets four attempts in 9.5 s. Only then does the client get
+SERVFAIL, and only such a spent budget counts as a failure toward `upstream_unreachable` (as always, 3 in a row or
+30 s without an answer). After the warm-up a failure is SERVFAIL at once. A query being retried holds one of the
+proxy's four UDP workers.
 
 ## The cache flush
 

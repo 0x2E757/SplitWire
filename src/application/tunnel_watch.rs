@@ -66,7 +66,8 @@ impl<'a> TunnelWatch<'a> {
         let Ok(health) = self.parts.tunnel.health(name) else {
             return;
         };
-        // The first handshake starts the end of the upstream's warm-up.
+        // The upstream's warm-up ends after the first handshake and comes back while the last
+        // is too old. Every 10 s is soon enough: a late report only lengthens the patience.
         if let (Some(at), Some(resolver)) = (health.last_handshake, self.parts.resolvers.get(name))
         {
             resolver.handshake(at);

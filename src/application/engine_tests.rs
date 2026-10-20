@@ -1083,7 +1083,7 @@ fn the_first_answers_after_connect_are_retried_flushed_once_and_raise_no_alert()
 }
 
 #[test]
-fn inside_the_grace_only_spent_budgets_count_toward_upstream_unreachable() {
+fn inside_the_grace_a_spent_budget_counts_once_toward_upstream_unreachable() {
     let rig = rig("engine-grace");
     let coordinator = rig.start();
     let parts = coordinator.parts().clone();
@@ -1091,16 +1091,42 @@ fn inside_the_grace_only_spent_budgets_count_toward_upstream_unreachable() {
     rig.driver.handshakes.after(Some(1));
     coordinator.connect("KeepLab").unwrap();
     *rig.zone.down.lock().unwrap() = true;
-    // Each query is retried for its budget before its SERVFAIL; two of them raise nothing.
-    for name in ["a.keep.example", "b.keep.example"] {
-        let start = rig.clock.now();
-        assert_eq!(rcode(&parts, name), RCODE_SERVFAIL);
-        assert!(rig.clock.now() >= start + UpstreamWarmup::BUDGET - UpstreamWarmup::PAUSE);
-    }
+    // The query is retried for its budget before its SERVFAIL, and that raises nothing.
+    let start = rig.clock.now();
+    assert_eq!(rcode(&parts, "a.keep.example"), RCODE_SERVFAIL);
+    assert!(rig.clock.now() >= start + UpstreamWarmup::BUDGET - UpstreamWarmup::PAUSE);
     coordinator.watch_tunnels();
     assert!(alert(&parts, "upstream_unreachable:KeepLab:").is_none());
-    // The budget spent a third time in a row: the alert is due even inside the grace.
-    assert_eq!(rcode(&parts, "c.keep.example"), RCODE_SERVFAIL);
+    // Two more in a row, retried until the grace ends and then at once: the alert is due.
+    for name in ["b.keep.example", "c.keep.example"] {
+        assert_eq!(rcode(&parts, name), RCODE_SERVFAIL);
+    }
     coordinator.watch_tunnels();
     assert!(alert(&parts, "upstream_unreachable:KeepLab:").is_some());
+}
+
+#[test]
+fn a_tunnel_idle_past_its_handshake_warms_up_again_instead_of_failing() {
+    let rig = rig("engine-cold");
+    let coordinator = rig.start();
+    let parts = coordinator.parts().clone();
+    rig.keep_lab(&coordinator);
+    rig.driver.handshakes.after(Some(1));
+    coordinator.connect("KeepLab").unwrap();
+    assert_eq!(
+        ask(&parts, "www.keep.example"),
+        [Ipv4Addr::new(10, 9, 0, 5)]
+    );
+    let flushes = rig.flusher.flushes();
+
+    // Idle: the last handshake grows older than WireGuard keeps its keys, as the watch reports.
+    rig.clock
+        .advance(UpstreamWarmup::COLD_AFTER + UpstreamWarmup::GRACE);
+    coordinator.watch_tunnels();
+    // The peer's new handshake takes three timeouts: the name is answered, nothing is raised.
+    *rig.zone.failing.lock().unwrap() = 3;
+    assert_eq!(rcode(&parts, "db.keep.example"), RCODE_NOERROR);
+    assert_eq!(rig.flusher.flushes(), flushes, "no failure to forget");
+    coordinator.watch_tunnels();
+    assert!(alert(&parts, "upstream_unreachable:KeepLab:").is_none());
 }

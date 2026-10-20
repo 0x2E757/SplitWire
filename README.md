@@ -42,7 +42,7 @@ The package lands in `target\package` ([building](docs/building.md)).
 | [Tunnel](docs/tunnel.md) | Loading wireguard-nt, the adapter's lifecycle, IP Helper, upstream DNS |
 | [Engine](docs/engine.md) | Connect and its rollback, Disconnect, start, restore and stop |
 | [Routing and DNS](docs/routing-and-dns.md) | Which profile gets a name or an address, the proxy, re-homing |
-| [Warm-up](docs/warm-up.md) | The first seconds after Connect: the first handshake, DNS retries, the cache flush |
+| [Warm-up](docs/warm-up.md) | The first seconds after Connect or idle: the first handshake, DNS retries, the cache flush |
 | [NRPT](docs/nrpt.md) | The registry rules, their sync, Group Policy |
 | [Alerts](docs/alerts.md) | Alert kinds, dismiss and restore, the tray state |
 | [IPC](docs/ipc.md) | The pipe's frames, their binary codec and the messages |

@@ -37,8 +37,9 @@ dropped and the Windows cache is flushed; the next answer learns on the right ad
 Each profile asks its upstream (`upstream`, else the `.conf`'s `DNS=`) through a socket bound to its tunnel address
 with `IP_UNICAST_IF` on its adapter, and gets a /32 to each upstream server on its adapter. The exchange is rebuilt
 when the adapter's index changes. After 3 failures in a row, or 30 s without an answer, `upstream_unreachable` is
-raised until an answer comes. Right after a Connect a failed exchange is retried for up to 5 s before SERVFAIL, and
-the first answer since the Connect or a failure flushes the Windows cache ([warm-up](warm-up.md)).
+raised until an answer comes. Right after a Connect, and while the last handshake is over 180 s old, a failed
+exchange is retried for up to 10 s before SERVFAIL; the first answer since the Connect or a failure flushes the
+Windows cache ([warm-up](warm-up.md)).
 
 ## Learned routes
 
