@@ -52,5 +52,5 @@ SplitWire.exe run --dry-run --for 30m --dir C:\Temp\sw --listen 127.0.0.1:15353
 SplitWire.Window.exe --pipe SplitWire.DryRun  # in a second console, against the dry run
 ```
 
-`--verify-pages` loads all 32 icons and builds every scenario's menu without showing them: one plain item per
-profile, as many top-level items as the view has.
+`--verify-pages` loads all 32 icons and the app icon's 8 sizes, and builds every scenario's menu without showing
+them: one plain item per profile, as many top-level items as the view has.

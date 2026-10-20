@@ -7,7 +7,7 @@ Part of [Window](../window.md).
 | `presentation::pages`, `nav`, `alerts`, … | one view model per page and component, built from IPC values | never |
 | `presentation::Session` | the page, typed text, pending settings, the import; commands in, requests and effects out | never |
 | `presentation::transport` | `EngineTransport` (`PipeClient` implements it); the demo service of the `--demo` scenarios | never |
-| `presentation::tray` | the tray's icon state, tooltip and menu; `TrayArt`, the icons `build/` embeds | never |
+| `presentation::tray` | the tray's icon state, tooltip and menu; `TrayArt` and `AppArt`, the icons `build/` embeds | never |
 | `platform::window::markup` | XAML text from the view models, `$token$` colours, regions and their binds | never |
 | `platform::window` | the island, the renderer, events, the frame loop, the picker, the clipboard | yes |
 

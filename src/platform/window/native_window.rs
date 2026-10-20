@@ -6,6 +6,7 @@
 use std::cell::{Cell, RefCell};
 use std::ptr;
 
+use super::app_icon::AppIcon;
 use super::island::Island;
 use crate::platform::abi::{Raw, wide};
 use crate::platform::com::{ComResult, Hr};
@@ -152,6 +153,7 @@ impl NativeWindow {
         // SAFETY: plain Win32 calls with valid, NUL-terminated strings.
         unsafe {
             let instance = GetModuleHandleW(ptr::null());
+            let (icon, small_icon) = AppIcon::for_class(instance);
             let class = WindowClass {
                 size: std::mem::size_of::<WindowClass>() as u32,
                 style: 0,
@@ -159,12 +161,12 @@ impl NativeWindow {
                 class_extra: 0,
                 window_extra: 0,
                 instance,
-                icon: ptr::null_mut(),
+                icon,
                 cursor: LoadCursorW(ptr::null_mut(), 32512usize as *const u16),
                 background: ptr::null_mut(),
                 menu: ptr::null(),
                 name: name.as_ptr(),
-                small_icon: ptr::null_mut(),
+                small_icon,
             };
             RegisterClassExW(&class);
             let hwnd = CreateWindowExW(

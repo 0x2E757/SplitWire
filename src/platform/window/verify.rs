@@ -2,13 +2,14 @@
 //! both width classes, loaded through XamlReader and mounted with its handlers, without a window.
 //! Each region's bound elements and fields must exist, and every field must read back the text the
 //! session gave it, line breaks included; then every field is typed into ([`TypingCheck`]). Then
-//! the tray: every icon loaded from the executable's resources, every scenario's menu built in both
-//! themes, nothing shown.
+//! the tray: every icon and the app icon loaded from the executable's resources, every scenario's
+//! menu built in both themes, nothing shown.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::alignment::Alignment;
+use super::app_icon::AppIcon;
 use super::error_info::ErrorInfo;
 use super::hidden_host::HiddenHost;
 use super::island::XamlRuntime;
@@ -38,6 +39,7 @@ pub struct Totals {
     pub regions: usize,
     pub elements: usize,
     pub tray_icons: usize,
+    pub app_icons: usize,
     pub tray_menus: usize,
     pub tray_items: usize,
     pub typed: Typed,
@@ -263,6 +265,7 @@ impl PageVerifier {
     /// plain item of the menu itself, which switches it with one click.
     fn tray(totals: &mut Totals) -> Result<(), String> {
         totals.tray_icons = TrayIcons::verify()?;
+        totals.app_icons = AppIcon::verify()?;
         for scenario in Scenario::ALL {
             let driver = Driver::new(scenario);
             let view = driver.session.tray();

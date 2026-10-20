@@ -36,10 +36,13 @@ The programs must sit side by side: the service loads `wireguard.dll` only from 
 
 ## Icons
 
-`build/main.rs` draws the icons with `src/presentation/tray/raster.rs` and links them as a `.res` file
-(`build/resource_file.rs`).
+`build/main.rs` draws the icons with `src/presentation/tray/raster.rs` and links them as a `.res` file per
+executable (`build/resource_file.rs`). Both kinds are `SplitArrow`, its branch at 65 %, snapped to whole pixels
+per size; a test compares them with the approved renders.
 
-- `TrayArt`, the [tray](tray.md) icons, in `SplitWire.Window.exe`, in 16, 20, 24 and 32 px: `SplitArrow`, its
-  branch at 65 %, snapped to whole pixels per size; a test compares them with the approved renders. Per taskbar
-  (light, dark), connected is ink (#1B1B1B, #FFFFFF), warning amber (#C27C0E, #FCE100), error red
-  (#C42B1C, #FF6B5E), off grey (#8A8A8A).
+- `AppArt`, the app icon, in both executables: icon group 1, the lowest, so Explorer and the taskbar show it, and
+  the window's class icon. The arrow in white on a tile from #FFA22B (top left) to #E5246F (bottom right), in 16,
+  20, 24, 32, 40, 48, 64 and 256 px.
+- `TrayArt`, the [tray](tray.md) icons, in `SplitWire.Window.exe`, in 16, 20, 24 and 32 px. Per taskbar (light,
+  dark), connected is ink (#1B1B1B, #FFFFFF), warning amber (#C27C0E, #FCE100), error red (#C42B1C, #FF6B5E),
+  off grey (#8A8A8A).

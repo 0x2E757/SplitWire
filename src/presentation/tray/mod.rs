@@ -1,7 +1,8 @@
 //! The tray: the icon's state, its tooltip and the right-click menu, built
-//! from the same `Status` the window shows. Pure: the platform draws the menu, shows the icon and
-//! hands the chosen item's action back.
+//! from the same `Status` the window shows, and the app icon drawn with the tray's arrow. Pure:
+//! the platform draws the menu, shows the icon and hands the chosen item's action back.
 
+pub mod app_art;
 mod menu;
 mod menu_art;
 pub mod raster;
@@ -9,6 +10,7 @@ mod split_arrow;
 mod tooltip;
 pub mod tray_art;
 
+pub use app_art::AppArt;
 pub use menu::TrayMenu;
 pub use menu_art::MenuArt;
 pub use tooltip::TrayTooltip;

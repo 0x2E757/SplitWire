@@ -6,6 +6,7 @@
 
 mod alignment;
 mod app;
+mod app_icon;
 mod arguments;
 mod bound;
 mod dropped;
@@ -81,8 +82,9 @@ impl WindowProgram {
                         totals.typed.keys, totals.typed.fields
                     );
                     println!(
-                        "Tray verified: {} icons loaded, {} menus with {} items built.",
-                        totals.tray_icons, totals.tray_menus, totals.tray_items
+                        "Tray verified: {} icons and {} app icon sizes loaded, {} menus with {} \
+                         items built.",
+                        totals.tray_icons, totals.app_icons, totals.tray_menus, totals.tray_items
                     );
                     0
                 }
