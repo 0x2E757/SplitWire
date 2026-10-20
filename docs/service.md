@@ -37,5 +37,7 @@ never take the coordinator's lock, so `Status` keeps answering while a Connect r
 
 `platform::service::Dispatcher` hands the main thread to the SCM; `ControlHandler` reports the states and accepts
 stop, shutdown (both end the run) and power events (a resume runs the periodic jobs at once). `Installer` creates
-the service: LocalSystem, automatic start, an unrestricted service SID, restarts after 5 s, 5 s and 30 s. Install,
-uninstall and cleanup are run by a person, never by an agent ([safety](safety.md)).
+the service: LocalSystem, automatic start, an unrestricted service SID, restarts after 5 s, 5 s and 30 s.
+`uninstall` stops and deletes it and removes the driver when no adapter is left; the data folder stays for a later
+install, `--purge` deletes it. Install, uninstall and cleanup are run by a person, never by an agent
+([safety](safety.md)).

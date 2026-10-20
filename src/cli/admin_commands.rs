@@ -68,8 +68,9 @@ impl AdminCommands {
         })
     }
 
-    /// Stops the service (which disconnects everything) and deletes it, removes the driver when
-    /// no WireGuard adapter is left, and deletes `profiles\`, or with `--purge` the data folder.
+    /// Stops the service (which disconnects everything) and deletes it, and removes the driver
+    /// when no WireGuard adapter is left. The data folder stays for a later install; `--purge`
+    /// deletes it.
     pub fn uninstall(purge: bool) -> i32 {
         Self::admin("uninstall", || {
             Installer::remove()?;
@@ -80,14 +81,12 @@ impl AdminCommands {
                 Ok(()) => println!("The wireguard-nt driver is removed."),
                 Err(e) => println!("The wireguard-nt driver stays ({e}): another adapter uses it."),
             }
-            let folder = DataFolder::new(DataFolder::default_root());
-            let doomed = if purge {
-                folder.root().to_path_buf()
-            } else {
-                folder.profiles()
-            };
-            match fs::remove_dir_all(&doomed) {
-                Ok(()) => println!("Deleted {}.", doomed.display()),
+            if !purge {
+                return Ok(());
+            }
+            let root = DataFolder::default_root();
+            match fs::remove_dir_all(&root) {
+                Ok(()) => println!("Deleted {}.", root.display()),
                 Err(e) if e.kind() == io::ErrorKind::NotFound => {}
                 Err(e) => return Err(e),
             }
