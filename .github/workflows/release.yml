@@ -1,0 +1,32 @@
+# A tag v<version> builds Setup and attaches it with its checksum to a draft release; it is
+# published by hand after a look. The tag has to match Cargo.toml.
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Tag matches Cargo.toml
+        shell: pwsh
+        run: |
+          $version = (Select-String -LiteralPath Cargo.toml -Pattern '^version = "(.+)"$').Matches[0].Groups[1].Value
+          if ("v$version" -ne $env:GITHUB_REF_NAME) { throw "Tag $env:GITHUB_REF_NAME, Cargo.toml $version" }
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup --no-progress -y }
+      - name: Build
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\release.ps1
+      - name: Draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem target\dist -File | Where-Object Name -match '^(SplitWire-.+\.exe|SHA256SUMS\.txt)$' | ForEach-Object FullName
+          gh release create $env:GITHUB_REF_NAME @files --draft --title "SplitWire $env:GITHUB_REF_NAME" --generate-notes

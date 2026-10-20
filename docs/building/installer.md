@@ -9,7 +9,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\release.ps1
 
 `release.ps1` runs [`build.ps1`](../building.md) into `target\dist\package`, so a copy running from
 `target\package` keeps running, and writes `SplitWire-Setup-<version>.exe` (from `installer\splitwire.iss`) and
-`SHA256SUMS.txt` to `target\dist`. The version is the one in `Cargo.toml`.
+`SHA256SUMS.txt` to `target\dist`. The version is the one in `Cargo.toml`. On GitHub,
+`.github/workflows/release.yml` does the same for a pushed tag `v<version>` that matches `Cargo.toml` and attaches
+both files to a draft release.
 
 ## Setup
 
