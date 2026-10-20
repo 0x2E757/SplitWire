@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// Wall-clock time; behind a trait so expiry and TTLs are tested without waiting.
@@ -13,6 +13,21 @@ pub trait Clock: Send + Sync {
     /// Waits `duration`; a manual clock moves on instead, so waits are tested without waiting.
     fn sleep(&self, duration: Duration) {
         std::thread::sleep(duration);
+    }
+}
+
+/// A clock shared with its owner, so a test can move a clock it has handed over.
+impl<C: Clock + ?Sized> Clock for Arc<C> {
+    fn now(&self) -> SystemTime {
+        (**self).now()
+    }
+
+    fn utc_offset_secs(&self, at: SystemTime) -> i64 {
+        (**self).utc_offset_secs(at)
+    }
+
+    fn sleep(&self, duration: Duration) {
+        (**self).sleep(duration);
     }
 }
 

@@ -147,8 +147,17 @@ bad name
 
     /// Drives a session through every page and state the scenario can show, handing each state to
     /// `visit` with its label. What `visit` does to the session carries on into the later states.
-    pub fn walk(scenario: Scenario, mut visit: impl FnMut(&str, &mut Driver)) {
-        let mut driver = Driver::new(scenario);
+    pub fn walk(scenario: Scenario, visit: impl FnMut(&str, &mut Driver)) {
+        Self::walk_with(Driver::new(scenario), scenario, visit);
+    }
+
+    /// [`walk`](Self::walk) with a driver of the caller's: over a transport whose service moves
+    /// on while the pages are shown.
+    pub fn walk_with(
+        mut driver: Driver,
+        scenario: Scenario,
+        mut visit: impl FnMut(&str, &mut Driver),
+    ) {
         let mut capture = |label: &str, driver: &mut Driver| {
             visit(&format!("{}:{label}", scenario.key()), driver);
         };

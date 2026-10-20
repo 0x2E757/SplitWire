@@ -102,7 +102,7 @@ pub fn page(context: &PageContext, view: &ProfilePageView, key: String) -> PageM
     let toggle = super::status::stamped(&toggle, context);
     let end = format!(
         "{}{toggle}{}",
-        Kit::pill(&view.pill),
+        Kit::live_pill(&mut out, &view.pill),
         more(&mut out, context, &name, false)
     );
     let header = context.header(&mut out, &name, Some(&view.subtitle), &end);

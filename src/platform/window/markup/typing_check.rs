@@ -30,7 +30,7 @@ fn fields(regions: &[Region], out: &mut Vec<(InputId, String)>) {
 }
 
 /// Where two markups part, with a little of each around it.
-fn difference(before: &str, after: &str) -> String {
+pub(super) fn difference(before: &str, after: &str) -> String {
     let at = before
         .char_indices()
         .zip(after.chars())

@@ -16,6 +16,8 @@ mod palette;
 mod region;
 mod styles;
 #[cfg(test)]
+mod time_check;
+#[cfg(test)]
 mod typing_check;
 mod xml;
 

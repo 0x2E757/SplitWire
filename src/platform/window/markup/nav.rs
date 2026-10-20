@@ -69,12 +69,16 @@ impl Nav {
                 r#"<Grid HorizontalAlignment="Center" VerticalAlignment="Center">{lead}</Grid>"#
             )
         } else {
+            // The value counts what the service does: a live part, so a new count reloads
+            // neither the pane nor an open profile menu.
+            let value = out.live(r#"Grid.Column="2""#, |_| {
+                Self::value(&item.value, item.enabled)
+            });
             format!(
-                r#"<Grid Padding="14,0,12,0" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="16"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid VerticalAlignment="Center">{lead}</Grid><TextBlock Grid.Column="1" Text="{}" FontWeight="{}" Foreground="{color}" VerticalAlignment="Center"{}/><Grid Grid.Column="2">{}</Grid></Grid>"#,
+                r#"<Grid Padding="14,0,12,0" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="16"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid VerticalAlignment="Center">{lead}</Grid><TextBlock Grid.Column="1" Text="{}" FontWeight="{}" Foreground="{color}" VerticalAlignment="Center"{}/>{value}</Grid>"#,
                 Kit::esc(&item.label),
                 if item.selected { "SemiBold" } else { "Normal" },
-                Align::line(13),
-                Self::value(&item.value, item.enabled)
+                Align::line(13)
             )
         };
         let tip = if compact {

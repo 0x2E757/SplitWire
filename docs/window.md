@@ -7,7 +7,7 @@ The same process shows the [tray](tray.md).
 | Page | About |
 |---|---|
 | [Structure](window/structure.md) | The layers, the frame loop, regions and how markup becomes elements |
-| [Fields and focus](window/fields-and-focus.md) | Typing reloads no region around a field; live parts; focus after a reload |
+| [Fields and focus](window/fields-and-focus.md) | Typing and time reload no region around a field or menu; live parts; focus after a reload |
 | [Demo and checks](window/demo-and-checks.md) | `--demo`, `--verify-pages`, the interface checks of `verify-abi` |
 | [Alignment](window/alignment.md) | Rows on one line, titles on one baseline, the alignment check, `--render-pages` |
 | [Design notes](window/design-notes.md) | Choices that follow from system XAML without data binding |

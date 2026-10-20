@@ -60,23 +60,28 @@ pub fn page(context: &PageContext, view: &RoutesPageView, key: String) -> PageMa
             .iter()
             .map(|card| {
                 let toggle = out.bind(Event::Click, Command::Toggle(format!("routes:{}", card.name)));
-                let numbers: String = card
-                    .numbers
-                    .iter()
-                    .filter(|(label, _)| !(context.compact() && label == "Last learned"))
-                    .map(|(label, value)| {
-                        format!(
-                            r#"<StackPanel MinWidth="64" Tag="align:block">{}{}</StackPanel>"#,
-                            Kit::text(label, 12, "$text2$", ""),
-                            Kit::text(value, 15, "$text$", r#"FontWeight="SemiBold""#)
-                        )
-                    })
-                    .collect();
+                // The numbers and the caption move on with the routes and the uptime: live parts,
+                // so they do not reload the toggle and the menu around them.
+                let numbers = out.live(r#"Grid.Column="1" VerticalAlignment="Center""#, |_| {
+                    let numbers: String = card
+                        .numbers
+                        .iter()
+                        .filter(|(label, _)| !(context.compact() && label == "Last learned"))
+                        .map(|(label, value)| {
+                            format!(
+                                r#"<StackPanel MinWidth="64" Tag="align:block">{}{}</StackPanel>"#,
+                                Kit::text(label, 12, "$text2$", ""),
+                                Kit::text(value, 15, "$text$", r#"FontWeight="SemiBold""#)
+                            )
+                        })
+                        .collect();
+                    format!(r#"<StackPanel Orientation="Horizontal" Spacing="20">{numbers}</StackPanel>"#)
+                });
                 let menu = more(&mut out, context, &card.name, true);
                 // The whole header opens and closes the card: the toggle lies under it all, and
                 // the menu's button, drawn over the toggle's empty last column, clicks on its own.
                 let head = format!(
-                    r#"<Grid{}><Button x:Name="{toggle}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0" Padding="12,10" MinHeight="0" CornerRadius="{}"><Grid ColumnSpacing="12" Tag="align:row"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="{MENU}"/></Grid.ColumnDefinitions><Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>{}<StackPanel Grid.Column="1" Spacing="4" Tag="align:block"><StackPanel Orientation="Horizontal" Spacing="8" Tag="align:row">{}{}</StackPanel>{}</StackPanel></Grid><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">{numbers}</StackPanel></Grid></Button><Grid Width="{MENU}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">{menu}</Grid></Grid>"#,
+                    r#"<Grid{}><Button x:Name="{toggle}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0" Padding="12,10" MinHeight="0" CornerRadius="{}"><Grid ColumnSpacing="12" Tag="align:row"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="{MENU}"/></Grid.ColumnDefinitions><Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>{}<StackPanel Grid.Column="1" Spacing="4" Tag="align:block"><StackPanel Orientation="Horizontal" Spacing="8" Tag="align:row">{}{}</StackPanel>{}</StackPanel></Grid>{numbers}</Grid></Button><Grid Width="{MENU}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">{menu}</Grid></Grid>"#,
                     Align::COVER,
                     if card.open { "7,7,0,0" } else { "7" },
                     Kit::icon(if card.open { "chev" } else { "chevr" }, 12, "$text2$"),
@@ -86,7 +91,7 @@ pub fn page(context: &PageContext, view: &RoutesPageView, key: String) -> PageMa
                     if card.caption.is_empty() {
                         String::new()
                     } else {
-                        Kit::line(&card.caption, 12, "$text3$", "")
+                        out.live("", |_| Kit::line(&card.caption, 12, "$text3$", ""))
                     }
                 );
                 let body = if card.open {

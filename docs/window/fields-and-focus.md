@@ -2,8 +2,8 @@
 
 Part of [Window](../window.md).
 
-A region that reloads replaces its TextBoxes, and a replaced TextBox has lost the focus. So typing into a field
-reloads neither the region that holds it nor any region around it.
+A region that reloads replaces its elements: a TextBox or button loses the focus, an open menu closes. So
+typing into a field reloads neither the region that holds it nor any region around it, and neither does time.
 
 ## Live parts
 
@@ -17,6 +17,9 @@ their search, and the import review's title, notes and expanders, which follow t
 Anything that appears or disappears with the typed text goes into a live part too: element names are numbered
 in order, so an element that comes or goes renames the ones after it and changes the region's markup. A live
 part that may be empty carries its own margins, so the panel around it needs no spacing for it.
+
+What moves on its own is a live part as well: a pill's uptime, a page's subtitle, a navigation item's value,
+a Routes card's numbers and caption, a route group's caption and rows.
 
 ## A reload under the focused field
 
@@ -38,3 +41,5 @@ The unit test `typing_reloads_no_region_around_the_field` types into every field
 field. `--verify-pages` does the same with the mounted TextBoxes: the text put into the TextBox, the caret at
 its end, then the frame loop's poll, commands, render and resets. The field must stay the same TextBox with its
 text and caret, and a forced reload under a focused field must hand its caret and selection on.
+`time_reloads_no_region_with_controls` walks the same states while the clock and the demo service's numbers
+run on, and fails on any region with a bind or field that changed.

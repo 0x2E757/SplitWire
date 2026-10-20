@@ -30,18 +30,32 @@ impl PageContext<'_> {
 
     /// The header region: title, subtitle, end controls, the bell.
     pub fn header(&self, out: &mut Out, title: &str, subtitle: Option<&str>, end: &str) -> String {
-        let bell = Kit::bell(out, self.frame.badge, &self.frame.bell, &|id| {
-            Some(Command::FollowAlert(id.to_owned()))
-        });
-        Kit::header(title, subtitle, end, &bell, self.compact())
+        let subtitle = subtitle.filter(|_| !self.compact()).unwrap_or_default();
+        self.compose(out, title, subtitle, "", end)
     }
 
     /// A header with markup after the title instead of a subtitle.
     pub fn header_with(&self, out: &mut Out, title: &str, middle: &str, end: &str) -> String {
+        self.compose(out, title, "", middle, end)
+    }
+
+    /// A subtitle counts what the service does (routes, profiles): the title and subtitle are a
+    /// live part, so a new count reloads neither the bell nor the controls beside it.
+    fn compose(
+        &self,
+        out: &mut Out,
+        title: &str,
+        subtitle: &str,
+        middle: &str,
+        end: &str,
+    ) -> String {
         let bell = Kit::bell(out, self.frame.badge, &self.frame.bell, &|id| {
             Some(Command::FollowAlert(id.to_owned()))
         });
-        Kit::header_with(title, "", middle, end, &bell)
+        let heading = out.live(r#"VerticalAlignment="Center""#, |_| {
+            Kit::titled(title, 28, subtitle, "$text2$", "")
+        });
+        Kit::header(&heading, middle, end, &bell)
     }
 }
 

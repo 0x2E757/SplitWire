@@ -8,28 +8,15 @@ use crate::presentation::pages::{InfoBar, Stat};
 use crate::presentation::{ApplyBarView, Command, Dot};
 
 impl Kit {
-    /// The page header: h1 28/600, the subtitle on its baseline, the end controls and the bell.
-    /// The title is trimmed to its capitals, so it sits in the middle of the header like the
+    /// The page header: `heading` (h1 28/600 and the subtitle on its baseline, [`Kit::titled`]),
+    /// `middle` centred after it (the Logs page's Segmented), the end controls and the bell. The
+    /// title is trimmed to its capitals, so it sits in the middle of the header like the
     /// controls; the subtitle is trimmed to its baseline, so both end on the same line.
-    pub fn header(
-        title: &str,
-        subtitle: Option<&str>,
-        end: &str,
-        bell: &str,
-        compact: bool,
-    ) -> String {
-        let subtitle = subtitle.filter(|_| !compact).unwrap_or_default();
-        Self::header_with(title, subtitle, "", end, bell)
-    }
-
-    /// A header with `middle` centred after the title and its subtitle (the Logs page's
-    /// Segmented).
-    pub fn header_with(title: &str, subtitle: &str, middle: &str, end: &str, bell: &str) -> String {
+    pub fn header(heading: &str, middle: &str, end: &str, bell: &str) -> String {
         format!(
-            r#"<Grid MinHeight="36" ColumnSpacing="12"{}><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid VerticalAlignment="Center"{}>{}</Grid><Grid Grid.Column="1" VerticalAlignment="Center">{middle}</Grid><StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">{end}{bell}</StackPanel></Grid>"#,
+            r#"<Grid MinHeight="36" ColumnSpacing="12"{}><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid VerticalAlignment="Center"{}>{heading}</Grid><Grid Grid.Column="1" VerticalAlignment="Center">{middle}</Grid><StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">{end}{bell}</StackPanel></Grid>"#,
             Align::ROW,
-            Align::BLOCK,
-            Self::titled(title, 28, subtitle, "$text2$", "")
+            Align::BLOCK
         )
     }
 

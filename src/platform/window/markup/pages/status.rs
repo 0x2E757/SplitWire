@@ -103,7 +103,7 @@ fn big(out: &mut Out, context: &PageContext, card: &BigCard, index: usize) -> St
         .as_ref()
         .map(|n| Kit::line(n, 12, "$text3$", ""))
         .unwrap_or_default();
-    let left = format!("{name}{}", Kit::pill(&card.pill));
+    let left = format!("{name}{}", Kit::live_pill(&mut head, &card.pill));
     let right = format!("{note}{}", controls(&mut head, context, &card.switch));
     let head = child(out, format!("Head{index}"), toolbar(&left, &right), head);
     let stats = child(
@@ -146,7 +146,7 @@ fn slim(out: &mut Out, context: &PageContext, card: &SlimCard, index: usize) -> 
             )
         })
         .unwrap_or_default();
-    let left = format!("{name}{}", Kit::pill(&card.pill));
+    let left = format!("{name}{}", Kit::live_pill(&mut head, &card.pill));
     let right = format!("{action}{}", controls(&mut head, context, &card.switch));
     let head = child(out, format!("Head{index}"), toolbar(&left, &right), head);
     let alerts = alerts_part(out, format!("Alerts{index}"), &card.alerts, "16,0,16,10");

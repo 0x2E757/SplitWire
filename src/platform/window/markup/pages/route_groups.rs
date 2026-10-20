@@ -1,5 +1,7 @@
 //! Routes grouped by list line: a header per group with a chevron, its icon, title and
-//! caption, then its rows. The profile page adds a remove button per list line.
+//! caption, then its rows. The profile page adds a remove button per list line. The caption and
+//! the rows move on with the routes and their ages, so they are live parts: a second's ages reload
+//! them and not the chevron or the remove button.
 
 use super::PageContext;
 use crate::platform::window::markup::region::{Event, Out};
@@ -121,7 +123,7 @@ impl RouteTable<'_> {
                     Kit::icon(if open { "chev" } else { "chevr" }, 12, "$text2$"),
                     Kit::icon(icon, 16, color),
                     Kit::bold_line(&group.title, 13),
-                    Kit::line(&group.caption, 12, "$text3$", "")
+                    out.live("", |_| Kit::line(&group.caption, 12, "$text3$", ""))
                 );
                 if !open {
                     return header;
@@ -140,9 +142,12 @@ impl RouteTable<'_> {
                         .map(|cell| Kit::row(&widths, &Self::cells(cell, compact), "Transparent", "20,0,12,0"))
                         .collect()
                 };
-                format!(
-                    r#"{header}<Border BorderBrush="$divider$" BorderThickness="1,0,0,0" Margin="17,0,0,0"><StackPanel>{rows}</StackPanel></Border>"#
-                )
+                let rows = out.live("", |_| {
+                    format!(
+                        r#"<Border BorderBrush="$divider$" BorderThickness="1,0,0,0" Margin="17,0,0,0"><StackPanel>{rows}</StackPanel></Border>"#
+                    )
+                });
+                format!("{header}{rows}")
             })
             .collect()
     }

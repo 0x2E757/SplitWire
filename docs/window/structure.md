@@ -29,9 +29,9 @@ identity: a handler fires the latest frame's command (`BoundCommands`), so a kep
 What typing changes lives in live parts, so typing reloads no region around a field ([fields and
 focus](fields-and-focus.md)).
 A Connect switch carries a revision that moves when a Connect or Disconnect is refused, so a switch the user
-flipped shows the service's state again. What changes every second
-(a Status card's numbers and chart, the routes' ages, new log lines) is a child region of its own, so the
-fields, switches and open menus beside it are not rebuilt.
+flipped shows the service's state again. What changes on its own (a Status card's numbers and chart, uptimes,
+the routes' ages, new log lines) is a child region of its own, so the fields, switches and open menus beside
+it are not rebuilt.
 
 The markup is pure text: palette tokens (`$card$`, `$pin3a$`) are filled per theme, icons are paths from the kit's
 table, the charts are stretched Paths in star rows and columns, so nothing needs a pixel width. A traffic chart

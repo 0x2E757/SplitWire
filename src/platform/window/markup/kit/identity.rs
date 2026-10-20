@@ -3,6 +3,7 @@
 use super::{Kit, Tone};
 use crate::ipc::Severity;
 use crate::platform::window::markup::Align;
+use crate::platform::window::markup::region::Out;
 use crate::presentation::{Dot, Pill};
 use crate::profile::Pin;
 
@@ -51,6 +52,12 @@ impl Kit {
             Self::dot(pill.dot),
             Self::line(&pill.label, 12, "$text2$", "")
         )
+    }
+
+    /// A pill whose tail moves on its own (a connection's uptime): a live part, so its minutes
+    /// reload the pill and not the switch and menu beside it.
+    pub fn live_pill(out: &mut Out, pill: &Pill) -> String {
+        out.live(r#"VerticalAlignment="Center""#, |_| Self::pill(pill))
     }
 
     pub fn badge(text: &str, tone: Tone) -> String {
