@@ -13,7 +13,8 @@ it over the pipe ([command line](building/command-line.md)).
 
 `build.ps1` runs `cargo fmt --check`, `cargo test` and `cargo clippy` (skip them with `-SkipTests`; the other
 [checks](building/checks.md) are run by hand), builds release and puts the package into `target\package`
-(`-Destination` picks another folder).
+(`-Destination` picks another folder). `tools\release.ps1` builds Setup from it
+([installer](building/installer.md)).
 
 ## Package
 

@@ -17,8 +17,15 @@ Everything else (the LAN, the internet, RDP into the machine) stays on the norma
 
 Version 0.1.0, in daily use with one profile: import, connect and disconnect from the window
 and the tray, routing by name through the profile's DNS, NRPT in the registry, the service and its recovery after a
-crash. Not done yet: an installer (for now the package is copied into `%ProgramFiles%\SplitWire` and registered with
-`SplitWire.exe install`), and live tests of several profiles at once.
+crash. Not done yet: live tests of several profiles at once.
+
+## Installing
+
+Download `SplitWire-Setup-<version>.exe` from [Releases](https://github.com/0x2E757/SplitWire/releases), check it
+against `SHA256SUMS.txt` and run it: it asks for administrator rights once, installs into `%ProgramFiles%\SplitWire`,
+registers and starts the service and starts the tray. Run a newer one to update: the profiles that were connected
+connect again, also over a copy installed by hand. Uninstall from Settings, Apps; the profiles and settings stay
+unless you choose to delete them ([installer](docs/building/installer.md)).
 
 ## Building
 
