@@ -140,7 +140,7 @@ fn a_client_drives_a_dry_run_engine_over_the_pipe() {
     let root = std::env::temp_dir().join(format!("splitwire-pipe-it-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let pipe = PipeName::parse(&format!("SplitWire.Test.{}", std::process::id())).unwrap();
-    let upstream = FakeUpstream::start(&[("www.acme.example", Ipv4Addr::new(10, 1, 0, 5))]);
+    let upstream = FakeUpstream::start(&[("www.acme.example", Ipv4Addr::new(198, 18, 1, 5))]);
     let stop = StopSignal::default();
     let host = {
         let (stop, pipe, folder) = (stop.clone(), pipe.clone(), DataFolder::new(root.clone()));
@@ -264,7 +264,7 @@ fn a_client_drives_a_dry_run_engine_over_the_pipe() {
     client.done(Request::Connect {
         name: "acmecorp".into(),
     });
-    assert_eq!(ask_dns("www.acme.example"), [Ipv4Addr::new(10, 1, 0, 5)]);
+    assert_eq!(ask_dns("www.acme.example"), [Ipv4Addr::new(198, 18, 1, 5)]);
     let status = client.status();
     let acme = &status.profiles[0];
     assert!(matches!(acme.state, ProfileState::Connected(_)), "{acme:?}");
@@ -311,7 +311,7 @@ fn a_client_drives_a_dry_run_engine_over_the_pipe() {
     assert!(
         logs.entries
             .iter()
-            .any(|l| l.message.contains("dry-run: would add route 10.1.0.5/32"))
+            .any(|l| l.message.contains("dry-run: would add route 198.18.1.5/32"))
     );
     assert!(logs.last_seq >= logs.entries.len() as u64);
 

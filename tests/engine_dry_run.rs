@@ -137,7 +137,7 @@ fn prepare(
             ACME_PRIVATE,
             "10.88.4.12/24",
             "198.51.100.7:51820",
-            "acme.example\ncorp.example\n172.20.0.0/16\n",
+            "acme.example\ncorp.example\n198.19.0.0/16\n",
         ),
         (
             "Contoso",
@@ -198,11 +198,13 @@ fn two_profiles_route_their_names_on_their_own_fake_adapters() {
     let clock: Arc<dyn Clock> = Arc::new(SystemClock);
     let log = Log::new(Log::DEFAULT_BYTES, clock.clone(), false);
     let upstream = FakeUpstream::start(&[
-        ("www.acme.example", "10.1.0.5"),
+        // Answers come from 198.18.0.0/15 (RFC 2544): never an on-link network, so the route guard
+        // refuses none of them on whatever machine runs the test.
+        ("www.acme.example", "198.18.1.5"),
         ("cdn.acme.example", "192.0.2.93"),
         ("www.contoso.example", "192.0.2.93"),
-        ("x.b.corp.example", "10.2.0.7"),
-        ("y.lab.home.example", "10.3.0.1"),
+        ("x.b.corp.example", "198.18.2.7"),
+        ("y.lab.home.example", "198.18.3.1"),
     ]);
     let table = Arc::new(DryRunRouteTable::new(log.clone()));
     let nrpt = Arc::new(RefusingNrpt {
@@ -234,7 +236,7 @@ fn two_profiles_route_their_names_on_their_own_fake_adapters() {
     assert!(
         table
             .routes(acme)
-            .contains(&"172.20.0.0/16".parse().unwrap())
+            .contains(&"198.19.0.0/16".parse().unwrap())
     );
     assert_eq!(
         nrpt.inner.rules(),
@@ -247,11 +249,11 @@ fn two_profiles_route_their_names_on_their_own_fake_adapters() {
     );
 
     // Listed names route on the right fake adapter, before the answer arrives.
-    assert_eq!(ask("www.acme.example"), [Ipv4Addr::new(10, 1, 0, 5)]);
-    assert!(table.routes(acme).contains(&host("10.1.0.5")));
-    assert_eq!(ask("x.b.corp.example"), [Ipv4Addr::new(10, 2, 0, 7)]);
-    assert!(table.routes(contoso).contains(&host("10.2.0.7")));
-    assert!(!table.routes(acme).contains(&host("10.2.0.7")));
+    assert_eq!(ask("www.acme.example"), [Ipv4Addr::new(198, 18, 1, 5)]);
+    assert!(table.routes(acme).contains(&host("198.18.1.5")));
+    assert_eq!(ask("x.b.corp.example"), [Ipv4Addr::new(198, 18, 2, 7)]);
+    assert!(table.routes(contoso).contains(&host("198.18.2.7")));
+    assert!(!table.routes(acme).contains(&host("198.18.2.7")));
 
     // The first learner holds a shared address; the other profile gets the alert.
     ask("cdn.acme.example");
@@ -270,8 +272,8 @@ fn two_profiles_route_their_names_on_their_own_fake_adapters() {
     // Disconnect one: its names fall through to the other, its routes are gone.
     coordinator.disconnect("Contoso").unwrap();
     assert!(table.routes(contoso).is_empty());
-    assert_eq!(ask("x.b.corp.example"), [Ipv4Addr::new(10, 2, 0, 7)]);
-    assert!(table.routes(acme).contains(&host("10.2.0.7")));
+    assert_eq!(ask("x.b.corp.example"), [Ipv4Addr::new(198, 18, 2, 7)]);
+    assert!(table.routes(acme).contains(&host("198.18.2.7")));
     assert_eq!(nrpt.inner.rules(), ["acme.example", "corp.example"]);
     assert!(
         parts
@@ -313,7 +315,7 @@ fn two_profiles_route_their_names_on_their_own_fake_adapters() {
             .iter()
             .any(|a| a.id == "connect_failed:HomeLab:")
     );
-    assert_eq!(ask("www.acme.example"), [Ipv4Addr::new(10, 1, 0, 5)]);
+    assert_eq!(ask("www.acme.example"), [Ipv4Addr::new(198, 18, 1, 5)]);
 
     // Disconnect all: no route, no rule, no proxy.
     coordinator.disconnect_all(false);
@@ -327,7 +329,7 @@ fn two_profiles_route_their_names_on_their_own_fake_adapters() {
     assert_eq!(fs::read_to_string(folder.state()).unwrap(), "connected=\n");
     engine.stop();
     assert!(!folder.running_marker().exists());
-    assert!(log.contains("dry-run: would add route 10.1.0.5/32"));
+    assert!(log.contains("dry-run: would add route 198.18.1.5/32"));
     // Redaction: no key, in base64 or in part, reached the log.
     for key in [ACME_PRIVATE, CONTOSO_PRIVATE, HOME_PRIVATE] {
         assert!(!log.contains(&key[..16]), "a key reached the log");
