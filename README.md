@@ -15,7 +15,7 @@ Everything else (the LAN, the internet, RDP into the machine) stays on the norma
 
 ## Status
 
-Version 0.1.0, in daily use with one profile: import, connect and disconnect from the window
+Version 0.1.1, in daily use with one profile: import, connect and disconnect from the window
 and the tray, routing by name through the profile's DNS, NRPT in the registry, the service and its recovery after a
 crash. Not done yet: live tests of several profiles at once.
 
