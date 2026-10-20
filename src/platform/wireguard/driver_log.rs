@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use super::layout::{LOG_ERR, LOG_WARN};
-use crate::logs::Log;
+use crate::logs::{Level, Log};
 
 /// The log the driver's lines go to. The logger callback carries no context pointer, so the
 /// target is process-wide, like the callback itself.
@@ -10,6 +10,14 @@ static TARGET: Mutex<Option<Log>> = Mutex::new(None);
 /// Lines longer than this are cut: the driver's are short, and a missing terminator must not run
 /// the reader off into memory.
 const MAX_MESSAGE: usize = 4096;
+
+/// Connect asks `WireGuardOpenAdapter` whether the name is free, and the driver logs the expected
+/// "not found" (`ERROR_NOT_FOUND`) as an error: the start of the line, and its code, since the
+/// system's text between them is in the machine's language.
+const ADAPTER_NOT_FOUND: (&str, &str) = (
+    "Failed to find matching adapter name: ",
+    "(Code 0x00000490)",
+);
 
 /// The wireguard-nt logger callback, writing to `Log` with the source `wireguard`.
 pub struct DriverLog;
@@ -29,10 +37,21 @@ impl DriverLog {
         let text = unsafe { Self::read(message) };
         let Ok(target) = TARGET.lock() else { return };
         let Some(log) = target.as_ref() else { return };
+        match Self::level(level, &text) {
+            Level::Error => log.error(text),
+            Level::Warn => log.warn(text),
+            Level::Info => log.info(text),
+        }
+    }
+
+    /// The driver's level, except for an error every Connect expects.
+    fn level(level: i32, text: &str) -> Level {
+        let (start, code) = ADAPTER_NOT_FOUND;
         match level {
-            LOG_ERR => log.error(text),
-            LOG_WARN => log.warn(text),
-            _ => log.info(text),
+            LOG_ERR if text.starts_with(start) && text.contains(code) => Level::Info,
+            LOG_ERR => Level::Error,
+            LOG_WARN => Level::Warn,
+            _ => Level::Info,
         }
     }
 
@@ -73,5 +92,16 @@ mod tests {
         assert_eq!(entries[0].message, "Handshake did not complete");
         assert_eq!(entries[1].level, Level::Error);
         assert_eq!(entries[2].message, "");
+    }
+
+    #[test]
+    fn the_adapter_lookup_every_connect_expects_is_no_error() {
+        let missing = "Failed to find matching adapter name: Element not found. (Code 0x00000490)";
+        assert_eq!(DriverLog::level(LOG_ERR, missing), Level::Info);
+        let denied = "Failed to find matching adapter name: Access is denied. (Code 0x00000005)";
+        assert_eq!(DriverLog::level(LOG_ERR, denied), Level::Error);
+        let other = "Failed to create adapter: Element not found. (Code 0x00000490)";
+        assert_eq!(DriverLog::level(LOG_ERR, other), Level::Error);
+        assert_eq!(DriverLog::level(LOG_WARN, missing), Level::Warn);
     }
 }

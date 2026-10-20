@@ -10,8 +10,9 @@ SHA-256 (BCrypt) compared with `Api::DLL_SHA256` (a test keeps it equal to the
 [vendor README](../vendor/wireguard-nt/README.md)), then `LoadLibraryExW` by full path with
 `LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32`. `wireguard::Api` resolves all twelve exports.
 `WireGuardNt` (the real `WireGuardDriver`) loads it at the first use and keeps it; `DriverLog` sends the driver's
-lines to the log as `wireguard`. `Status` reports the running driver's version once it is loaded
-(`Tunnel::driver_version`); asking never loads it. Every process start restricts the default DLL search to System32.
+lines to the log as `wireguard` at their level; the "not found" of step 2, which every Connect expects, is info.
+`Status` reports the running driver's version once it is loaded (`Tunnel::driver_version`); asking never loads it.
+Every process start restricts the default DLL search to System32.
 
 ## Up
 
