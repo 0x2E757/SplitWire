@@ -1,10 +1,14 @@
 //! Embeds the window's application manifest (XAML Islands need `maxversiontested`, without it
 //! `WindowsXamlManager` refuses to start, and the window is per-monitor DPI aware), the app icon
-//! of both executables and the tray icons: every state for a light and a dark taskbar, drawn by
-//! the same code the menus use.
+//! and the version block of both executables, and the tray icons: every state for a light and a
+//! dark taskbar, drawn by the same code the menus use.
 
 #[path = "../src/presentation/tray/app_art.rs"]
 mod app_art;
+#[path = "../src/platform/executables.rs"]
+#[allow(dead_code)]
+mod executables;
+mod png_icons;
 #[path = "../src/presentation/tray/raster.rs"]
 #[allow(dead_code)]
 mod raster;
@@ -16,14 +20,22 @@ mod split_arrow;
 mod tray_art;
 
 use app_art::AppArt;
-use resource_file::ResourceFile;
+use executables::Executables;
+use png_icons::PngIcons;
+use resource_file::{ResourceFile, VersionInfo};
 use std::path::PathBuf;
 use tray_art::{Taskbar, TrayArt};
 
 /// Cargo's name of each executable that gets a manifest, and the manifest.
 const MANIFESTS: [(&str, &str); 1] = [("splitwire-window", "build/window.manifest")];
-/// Cargo's names of the executables, which all carry the app icon.
-const BINS: [&str; 2] = ["splitwire", "splitwire-window"];
+/// Cargo's name of each executable and the description Windows shows for it. Both carry the app
+/// icon in every size: Explorer shows both in the program's folder.
+const EXECUTABLES: [(&str, &str); 2] = [
+    ("splitwire", "SplitWire service"),
+    ("splitwire-window", "SplitWire"),
+];
+/// Publisher in the version block of every executable.
+const COMPANY: &str = "SplitWire";
 /// The executable that shows the tray icon.
 const TRAY: &str = "splitwire-window";
 
@@ -39,7 +51,9 @@ fn main() {
         );
     }
     for source in [
+        "build/png_icons.rs",
         "build/resource_file.rs",
+        "src/platform/executables.rs",
         "src/presentation/tray/app_art.rs",
         "src/presentation/tray/raster.rs",
         "src/presentation/tray/split_arrow.rs",
@@ -47,13 +61,35 @@ fn main() {
     ] {
         println!("cargo:rerun-if-changed={}", root.join(source).display());
     }
-    let app: Vec<(u32, Vec<u32>)> = AppArt::SIZES
-        .iter()
-        .map(|&size| (size, AppArt::pixels(size)))
-        .collect();
     let out = PathBuf::from(std::env::var_os("OUT_DIR").expect("set by Cargo"));
-    for bin in BINS {
-        let mut resources = ResourceFile::new().icon_group(AppArt::RESOURCE_ID, &app);
+    let version = std::env::var("CARGO_PKG_VERSION").expect("set by Cargo");
+    let png = PngIcons::new(&root, &out);
+    println!("cargo:rerun-if-changed={}", png.assets().display());
+    let large = png
+        .load(AppArt::pixels)
+        .unwrap_or_else(|error| panic!("{error}"));
+    // A PNG where there is one, otherwise a bitmap.
+    let image = |size: u32| {
+        large
+            .iter()
+            .find(|(png_size, _)| *png_size == size)
+            .map(|(_, png)| png.clone())
+            .unwrap_or_else(|| ResourceFile::bitmap(size, &AppArt::pixels(size)))
+    };
+    let app: Vec<(u32, Vec<u8>)> = AppArt::SIZES
+        .iter()
+        .map(|&size| (size, image(size)))
+        .collect();
+    for (bin, description) in EXECUTABLES {
+        let file_name = Executables::packaged(&format!("{bin}.exe")).expect("a packaged name");
+        let mut resources = ResourceFile::new()
+            .icon_group(AppArt::RESOURCE_ID, &app)
+            .version(&VersionInfo {
+                description,
+                company: COMPANY,
+                file_name,
+                version: &version,
+            });
         if bin == TRAY {
             resources = tray_icons(resources);
         }
@@ -67,9 +103,12 @@ fn main() {
 fn tray_icons(mut resources: ResourceFile) -> ResourceFile {
     for state in TrayArt::STATES {
         for taskbar in Taskbar::BOTH {
-            let images: Vec<(u32, Vec<u32>)> = TrayArt::SIZES
+            let images: Vec<(u32, Vec<u8>)> = TrayArt::SIZES
                 .iter()
-                .map(|&size| (size, TrayArt::pixels(state, taskbar, size)))
+                .map(|&size| {
+                    let pixels = TrayArt::pixels(state, taskbar, size);
+                    (size, ResourceFile::bitmap(size, &pixels))
+                })
                 .collect();
             resources = resources.icon_group(TrayArt::resource_id(state, taskbar), &images);
         }

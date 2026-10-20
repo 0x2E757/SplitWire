@@ -6,7 +6,7 @@ pipe client. The view models are `presentation::tray`; `platform::window::tray` 
 ## Icon
 
 The icon is the `TrayState` of the last `Status` ([alerts](alerts.md)); while no pipe answers it is the error's.
-Only its colour tells the state. `TrayArt` draws it per taskbar theme ([icons](building.md#icons)), embedded as icon
+Only its colour tells the state. `TrayArt` draws it per taskbar theme ([icons](building/icon-and-description.md)), embedded as icon
 groups 101–104 (light taskbar) and 111–114 (dark). The taskbar follows the Windows mode (`SystemUsesLightTheme`),
 not the app theme.
 
@@ -52,5 +52,5 @@ SplitWire.exe run --dry-run --for 30m --dir C:\Temp\sw --listen 127.0.0.1:15353
 SplitWire.Window.exe --pipe SplitWire.DryRun  # in a second console, against the dry run
 ```
 
-`--verify-pages` loads all 32 icons and the app icon's 8 sizes, and builds every scenario's menu without showing
-them: one plain item per profile, as many top-level items as the view has.
+`--verify-pages` loads the 32 icons and 12 app icon sizes and builds every scenario's menu without showing them:
+one plain item per profile, as many top-level items as the view has.

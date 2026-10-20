@@ -10,7 +10,8 @@ pub struct AppArt;
 impl AppArt {
     /// The lowest icon group id: Explorer shows the first group as the file's icon.
     pub const RESOURCE_ID: u16 = 1;
-    pub const SIZES: [u32; 8] = [256, 64, 48, 40, 32, 24, 20, 16];
+    /// The shell's 16 to 48 px at 100 to 150 %, and Explorer's large views.
+    pub const SIZES: [u32; 12] = [16, 20, 24, 30, 32, 36, 40, 48, 64, 96, 128, 256];
     const UNIT: f64 = 256.0;
     /// The tile's corner radius in the 256-unit box.
     const CORNER: f64 = 56.0;

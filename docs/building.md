@@ -32,17 +32,6 @@ code is `src/platform/executables.rs`, and a test checks that they match.
 The programs must sit side by side: the service loads `wireguard.dll` only from its own folder.
 
 `build/main.rs` embeds `build/window.manifest` into `SplitWire.Window.exe`: XAML Islands need its
-`maxversiontested`, and the window is per-monitor DPI aware.
-
-## Icons
-
-`build/main.rs` draws the icons with `src/presentation/tray/raster.rs` and links them as a `.res` file per
-executable (`build/resource_file.rs`). Both kinds are `SplitArrow`, its branch at 65 %, snapped to whole pixels
-per size; a test compares them with the approved renders.
-
-- `AppArt`, the app icon, in both executables: icon group 1, the lowest, so Explorer and the taskbar show it, and
-  the window's class icon. The arrow in white on a tile from #FFA22B (top left) to #E5246F (bottom right), in 16,
-  20, 24, 32, 40, 48, 64 and 256 px.
-- `TrayArt`, the [tray](tray.md) icons, in `SplitWire.Window.exe`, in 16, 20, 24 and 32 px. Per taskbar (light,
-  dark), connected is ink (#1B1B1B, #FFFFFF), warning amber (#C27C0E, #FCE100), error red (#C42B1C, #FF6B5E),
-  off grey (#8A8A8A).
+`maxversiontested`, and the window is per-monitor DPI aware. It also embeds the
+[icon and description](building/icon-and-description.md) of both executables and the tray icons; the large icon
+sizes are PNG files in `assets/icon`, encoded again by `tools\encode-icon.ps1` when the art changes.
